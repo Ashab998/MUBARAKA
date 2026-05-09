@@ -26,11 +26,11 @@
 
         /* КОРОЛЕВСКИЙ ЗОЛОТОЙ СТИЛЬ (АДМИН) */
         body.admin-theme {
-            --bg-body: #0b1120; /* Глубокий темно-синий / Королевский синий */
+            --bg-body: #0b1120; 
             --card-bg: #111827;
-            --text-main: #fdf6e3; /* Жемчужный белый */
-            --text-muted: #c9a86a; /* Античное золото */
-            --primary: #dfb15b; /* Яркое золото */
+            --text-main: #fdf6e3; 
+            --text-muted: #c9a86a; 
+            --primary: #dfb15b; 
             --primary-light: rgba(223, 177, 91, 0.15);
             --track-bg: #1f2937;
             --divider: rgba(223, 177, 91, 0.15);
@@ -243,10 +243,10 @@
             <span id="t-rub1">руб.</span>
         </div>
         
-        <input type="range" id="price-slider" min="6000" max="200000" step="1000" value="110000" oninput="handleSlider('price')" onchange="handleRelease()">
+        <input type="range" id="price-slider" min="6000" max="300000" step="1000" value="110000" oninput="handleSlider('price')" onchange="handleRelease()">
         <div class="limits-text">
             <span id="price-min-lbl">6.000</span>
-            <span id="price-max-lbl">200.000</span>
+            <span id="price-max-lbl">300.000</span>
         </div>
         
         <div class="label-row">
@@ -258,16 +258,16 @@
         <div id="dp-container">
             <div class="label-row">
                 <label id="t-dp-lbl">Первоначальный взнос</label>
-                <span class="val-badge" id="dp-badge" style="color: var(--primary);">25 %</span>
+                <span class="val-badge" id="dp-badge" style="color: var(--primary);">0 %</span>
             </div>
             <div class="price-input-wrapper" style="padding: 10px 18px;">
-                <input type="number" id="dp-input" value="27500" step="100" enterkeyhint="done" onkeydown="if(event.key==='Enter') this.blur()" oninput="handleInput('dp')" onblur="handleBlur('dp')">
+                <input type="number" id="dp-input" value="0" step="100" enterkeyhint="done" onkeydown="if(event.key==='Enter') this.blur()" oninput="handleInput('dp')" onblur="handleBlur('dp')">
                 <span id="t-rub2">руб.</span>
             </div>
             
-            <div id="dp-warning" class="info-text">ℹ️ При сумме от 100 000 руб. минимальный взнос 25%</div>
+            <div id="dp-warning" class="info-text"></div>
             
-            <input type="range" id="dp-slider" min="0" max="100" value="25" step="1" oninput="handleSlider('dp')" onchange="handleRelease()">
+            <input type="range" id="dp-slider" min="0" max="100" value="0" step="1" oninput="handleSlider('dp')" onchange="handleRelease()">
             <div class="limits-text">
                 <span id="dp-min-lbl">0%</span>
                 <span id="dp-max-lbl">100%</span>
@@ -359,8 +359,7 @@
             resTitle: "Результат расчета", rPrice: "Стоимость Товара", rMonths: "Срок Рассрочки", rDp: "Первоначальный Взнос",
             rMonthly: "Ежемесячный платеж", rDpRub: "Первоначальный", rMarkup: "Торговая наценка", rTotal: "Итого:",
             btnSchedule: "График платежей", monthWord: "мес.",
-            schedDp: "Первый взнос", schedPay: "платеж",
-            dpInfoText: "ℹ️ При сумме от 100 000 руб. минимальный взнос 25%"
+            schedDp: "Первый взнос", schedPay: "платеж"
         },
         ce: {
             title: "Калькулятор", halal: "100% Хьанал (Mubarak)",
@@ -369,8 +368,7 @@
             resTitle: "Расчётан жамӀ", rPrice: "Товаран мах", rMonths: "Рассрочкин хан", rDp: "Хьалхара взнос",
             rMonthly: "ХӀора беттан мах", rDpRub: "Хьалхара взнос", rMarkup: "ТӀетоьхна мах", rTotal: "ЖамӀ:",
             btnSchedule: "Платежийн график", monthWord: "бутт",
-            schedDp: "Хьалхара взнос", schedPay: "тӀедиллар",
-            dpInfoText: "ℹ️ 100 000 сом совдаьлча, хьалхара взнос 25% дуьйна"
+            schedDp: "Хьалхара взнос", schedPay: "тӀедиллар"
         }
     };
 
@@ -385,7 +383,47 @@
     const elMonthsSlider = document.getElementById('months-slider');
 
     function openAdminModal() {
-        if (isAdmin) return;
+        if (isAdmin) {
+            // Если мы уже в режиме PRO, кнопка сработает как "Выход из PRO"
+            isAdmin = false;
+            haptic();
+            document.body.classList.remove('admin-theme');
+            
+            // Восстанавливаем лимиты обычного пользователя
+            elMonthsSlider.min = 3;
+            elMonthsSlider.max = 12;
+            elPriceSlider.max = 300000;
+            document.getElementById('price-max-lbl').innerText = '300.000';
+            
+            // Корректируем текущие значения, если они выходят за рамки обычного пользователя
+            let currentPrice = parseInt(elPriceInput.value) || 0;
+            if (currentPrice > 300000) { elPriceInput.value = 300000; elPriceSlider.value = 300000; }
+            if (currentPrice < 6000) { elPriceInput.value = 6000; elPriceSlider.value = 6000; }
+            
+            let currentMonths = parseInt(elMonthsSlider.value) || 3;
+            if (currentMonths > 12) { elMonthsSlider.value = 12; }
+            if (currentMonths < 3) { elMonthsSlider.value = 3; }
+            
+            updateWarningText();
+            updateDpState(); 
+            
+            // Дополнительная проверка на соблюдение минимального взноса после выхода
+            let price = parseInt(elPriceInput.value) || 0;
+            let rubDp = parseInt(elDpInput.value) || 0;
+            let minDp = (price >= 150000) ? Math.floor(price * 0.25) : 0;
+            
+            if (rubDp < minDp) {
+                elDpInput.value = minDp;
+                elDpSlider.value = price > 0 ? (minDp / price) * 100 : 0;
+                syncSliderVisuals(elDpSlider);
+            }
+
+            updateUI();
+            calculateFinal();
+            return;
+        }
+        
+        // Если мы НЕ в режиме PRO, открываем модалку для ввода пароля
         document.getElementById('admin-modal').classList.add('active');
         setTimeout(() => document.getElementById('admin-pin').focus(), 100);
     }
@@ -393,6 +431,15 @@
     function closeAdminModal() {
         document.getElementById('admin-modal').classList.remove('active');
         document.getElementById('admin-pin').value = '';
+    }
+
+    function updateWarningText() {
+        let thresholdStr = isAdmin ? "300 000" : "150 000";
+        if (currentLang === 'ru') {
+            document.getElementById('dp-warning').innerText = `ℹ️ При сумме от ${thresholdStr} руб. минимальный взнос 25%`;
+        } else {
+            document.getElementById('dp-warning').innerText = `ℹ️ ${thresholdStr} сом совдаьлча, хьалхара взнос 25% дуьйна`;
+        }
     }
 
     function checkAdminPin() {
@@ -406,9 +453,10 @@
             
             elMonthsSlider.min = 2;
             elMonthsSlider.max = 24;
-            elPriceSlider.max = 500000;
-            document.getElementById('price-max-lbl').innerText = '500.000';
+            elPriceSlider.max = 1000000;
+            document.getElementById('price-max-lbl').innerText = '1.000.000';
             
+            updateWarningText();
             updateDpState();
             updateUI();
             calculateFinal();
@@ -446,15 +494,16 @@
         document.getElementById('t-r-markup').innerText = dict[lang].rMarkup;
         document.getElementById('t-r-total').innerText = dict[lang].rTotal;
         document.getElementById('t-btn-schedule').innerText = dict[lang].btnSchedule;
-        document.getElementById('dp-warning').innerText = dict[lang].dpInfoText;
         
+        updateWarningText();
         updateUI();
         calculateFinal(); 
     }
 
     function updateDpState() {
         let price = parseInt(elPriceInput.value) || 0;
-        let minPct = (price >= 100000 && !isAdmin) ? 25 : 0;
+        let threshold = isAdmin ? 300000 : 150000;
+        let minPct = (price >= threshold) ? 25 : 0;
         let maxPct = 100;
 
         elDpSlider.min = minPct;
@@ -463,7 +512,7 @@
         document.getElementById('dp-max-lbl').innerText = maxPct + '%';
 
         let dpWarning = document.getElementById('dp-warning');
-        if (price >= 100000 && !isAdmin) {
+        if (price >= threshold) {
             dpWarning.style.display = 'flex';
         } else {
             dpWarning.style.display = 'none';
@@ -539,7 +588,7 @@
     function handleBlur(type) {
         if (type === 'price') {
             let val = parseInt(elPriceInput.value) || 0;
-            let maxP = isAdmin ? 500000 : 200000;
+            let maxP = isAdmin ? 1000000 : 300000;
             let minP = isAdmin ? 1000 : 6000;
             
             if (val > maxP) val = maxP;
@@ -551,7 +600,8 @@
             let price = parseInt(elPriceInput.value) || 0;
             let rub = parseInt(elDpInput.value) || 0;
             
-            let minPct = (price >= 100000 && !isAdmin) ? 25 : 0;
+            let threshold = isAdmin ? 300000 : 150000;
+            let minPct = (price >= threshold) ? 25 : 0;
             let minRub = Math.floor(price * (minPct / 100));
             let maxRub = isAdmin ? price : Math.floor(price * 0.8);
             
@@ -592,10 +642,11 @@
         let months = parseInt(elMonthsSlider.value) || 3;
         let dp = parseInt(elDpInput.value) || 0;
         
-        let minDp = (price >= 100000 && !isAdmin) ? Math.floor(price * 0.25) : 0;
+        let threshold = isAdmin ? 300000 : 150000;
+        let minDp = (price >= threshold) ? Math.floor(price * 0.25) : 0;
         let dpWarning = document.getElementById('dp-warning');
 
-        if (price >= 100000 && dp < minDp && !isAdmin) {
+        if (price >= threshold && dp < minDp) {
             dpWarning.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
             dpWarning.style.color = '#ef4444';
         } else {
@@ -665,8 +716,8 @@
 
     function openWhatsApp() { 
         let dp = parseInt(elDpInput.value) || 0;
-        let text = `Ассаламу 1алайкум! Хочу оформить рассрочку.\nТовар: ${formatMoney(parseInt(elPriceInput.value))} руб.\nВзнос: ${formatMoney(dp)} руб.\nСрок: ${elMonthsSlider.value} мес.`;
-        window.open(`https://wa.me/79339480095?text=${encodeURIComponent(text)}`, "_blank"); 
+        let text = `Ассаламу 1алайкум.\nХочу оформить рассрочку.\nТовар: ${formatMoney(parseInt(elPriceInput.value))} руб.\nВзнос: ${formatMoney(dp)} руб.\nСрок: ${elMonthsSlider.value} мес.`;
+        window.open(`https://wa.me/79288998838?text=${encodeURIComponent(text)}`, "_blank"); 
     }
 
     function showHalalInfo() {
@@ -674,6 +725,7 @@
     }
 
     window.onload = function() {
+        updateWarningText();
         updateDpState(); 
         updateUI();
         calculateFinal(); 
